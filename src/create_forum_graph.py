@@ -42,7 +42,10 @@ if __name__ == "__main__":
         if args.delete_index:
             if es.indices.exists(index=args.index_name):
                 print('Deleting index!!')
-                proc = subprocess.Popen(["curl", "-XDELETE", "localhost:9200/" + args.index_name], stdout=subprocess.PIPE)
+                proc = subprocess.Popen(
+                    ["curl", "-XDELETE", f"localhost:9200/{args.index_name}"],
+                    stdout=subprocess.PIPE,
+                )
                 (out, err) = proc.communicate()
                 print(out)
         else:
@@ -51,8 +54,6 @@ if __name__ == "__main__":
         os.mkdir(args.graph_output_dir)
     except:
         traceback.print_exc(file=sys.stdout)
-        pass
-
     rebuild_index = args.delete_index or not es.indices.exists(index=args.index_name)
     if rebuild_index:
         print('Create index: ', args.index_name)

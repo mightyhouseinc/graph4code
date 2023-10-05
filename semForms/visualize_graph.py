@@ -20,7 +20,7 @@ def parse_wala_into_graph(data, add_args=False):
         if node is None:
             continue
         if node['path'][-1] == 'expr':
-            nodes[node['nodeNumber']] = 'expression' + str(expr_index)
+            nodes[node['nodeNumber']] = f'expression{str(expr_index)}'
             expr_index += 1
         else:
             nodes[node['nodeNumber']] = '.'.join(node['path'])
@@ -36,12 +36,20 @@ def parse_wala_into_graph(data, add_args=False):
 
         if 'edges' in node:
             if 'immediatelyPrecedes' in node['edges']:
-                for dest in node['edges']['immediatelyPrecedes']:
-                    cf_edges.append({'source': src, 'target': nodes[int(dest)]}) 
+                cf_edges.extend(
+                    {'source': src, 'target': nodes[int(dest)]}
+                    for dest in node['edges']['immediatelyPrecedes']
+                )
             if 'flowsTo' in node['edges']:
                 for label in node['edges']['flowsTo']:
-                    for dest in node['edges']['flowsTo'][label]:
-                        df_edges.append({'source': src, 'target': nodes[int(dest)], 'label': label})
+                    df_edges.extend(
+                        {
+                            'source': src,
+                            'target': nodes[int(dest)],
+                            'label': label,
+                        }
+                        for dest in node['edges']['flowsTo'][label]
+                    )
     return (nodes, df_edges, cf_edges)
 
 

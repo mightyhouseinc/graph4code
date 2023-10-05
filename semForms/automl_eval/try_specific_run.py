@@ -12,10 +12,7 @@ import pandas as pd
 def get_field(target, df):
     if target in df.columns:
         return target
-    for col in df.columns:
-        if target == col.lower():
-            return col
-    return None
+    return next((col for col in df.columns if target == col.lower()), None)
 
 @singledispatch
 def to_serializable(val):
@@ -46,25 +43,44 @@ def try_dataset(argv, make_auto, compute_corr_only):
     print('mode:' + mode)
     print('column:' + column) #target?
     print('problem_type:' + problem_type)
-    print('seed:' + str(SEED))
-    print('non corr expr columns' + str(columns))
+    print(f'seed:{SEED}')
+    print(f'non corr expr columns{str(columns)}')
     if len(argv) > 8:
         pipeline_file = argv[8]
         print('pipeline_file:' + pipeline_file)
 
     if mode != "plain":
-        if len(argv) > 8:
-            ret = analyze(df, mode, csv, column, problem_type, SEED,
-                          non_correlated_expr_columns=columns, pipeline_file=pipeline_file, make_auto=make_auto,compute_corr_only=compute_corr_only)
-        else:
-            ret = analyze(df, mode, csv, column, problem_type, SEED,
-                          non_correlated_expr_columns=columns, make_auto=make_auto, compute_corr_only=compute_corr_only)
+        ret = (
+            analyze(
+                df,
+                mode,
+                csv,
+                column,
+                problem_type,
+                SEED,
+                non_correlated_expr_columns=columns,
+                pipeline_file=pipeline_file,
+                make_auto=make_auto,
+                compute_corr_only=compute_corr_only,
+            )
+            if len(argv) > 8
+            else analyze(
+                df,
+                mode,
+                csv,
+                column,
+                problem_type,
+                SEED,
+                non_correlated_expr_columns=columns,
+                make_auto=make_auto,
+                compute_corr_only=compute_corr_only,
+            )
+        )
+    elif len(argv) > 8:
+        ret = analyze(df, mode, csv, column, problem_type, SEED, pipeline_file=pipeline_file
+                      , make_auto=make_auto, compute_corr_only=compute_corr_only)
     else:
-        if len(argv) > 8:
-            ret = analyze(df, mode, csv, column, problem_type, SEED, pipeline_file=pipeline_file
-                          , make_auto=make_auto, compute_corr_only=compute_corr_only)
-        else:
-            ret = analyze(df, mode, csv, column, problem_type, SEED, make_auto=make_auto, compute_corr_only=compute_corr_only)
+        ret = analyze(df, mode, csv, column, problem_type, SEED, make_auto=make_auto, compute_corr_only=compute_corr_only)
 
     with open(argv[7], "w") as f:
         json.dump(ret, f, indent=4, default=to_serializable)

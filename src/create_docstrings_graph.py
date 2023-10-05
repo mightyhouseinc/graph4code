@@ -84,20 +84,20 @@ examples:
 
 docstrings_uri = 'http://purl.org/twc/graph4code/docstrings'
 
-prefixes = {}
-prefixes['rdf'] = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#'
-prefixes['rdfs'] = 'http://www.w3.org/2000/01/rdf-schema#'
-prefixes['schema'] = 'http://schema.org/'
-prefixes['sioc'] = 'http://rdfs.org/sioc/ns#'
-prefixes['py'] = 'http://purl.org/twc/graph4code/python/'
-prefixes['skos'] = 'http://www.w3.org/2004/02/skos/core#'
-prefixes['sio'] = 'http://semanticscience.org/resource/'
-prefixes['graph4code'] = 'http://purl.org/twc/graph4code/ontology/'
-prefixes['owl'] = 'http://www.w3.org/2002/07/owl#'
-prefixes['prov'] = 'http://www.w3.org/ns/prov#'
-prefixes['dcat'] = 'http://www.w3.org/ns/dcat#'
-prefixes['dcterms'] = 'http://purl.org/dc/terms/'
-
+prefixes = {
+    'rdf': 'http://www.w3.org/1999/02/22-rdf-syntax-ns#',
+    'rdfs': 'http://www.w3.org/2000/01/rdf-schema#',
+    'schema': 'http://schema.org/',
+    'sioc': 'http://rdfs.org/sioc/ns#',
+    'py': 'http://purl.org/twc/graph4code/python/',
+    'skos': 'http://www.w3.org/2004/02/skos/core#',
+    'sio': 'http://semanticscience.org/resource/',
+    'graph4code': 'http://purl.org/twc/graph4code/ontology/',
+    'owl': 'http://www.w3.org/2002/07/owl#',
+    'prov': 'http://www.w3.org/ns/prov#',
+    'dcat': 'http://www.w3.org/ns/dcat#',
+    'dcterms': 'http://purl.org/dc/terms/',
+}
 num_lambda_exprs = 0
 entities_with_space = 0
 total_num_triples = 0
@@ -169,23 +169,13 @@ def add_triples_from_param_map(doc_uri, g, data_list, param_names):
             if ' ' in key or ':' in key:
                 key = key.strip()
                 arr = re.split(regexPattern, key)
-                #in case of key is kw: keyword-arguments passed onto the :py:class -- switch to kw
-                #param map key is str name -- switch to str
-
-                # if ' ' in key and len(arr)>1:
-                #     nkey = arr[1]
-                # else:
-                nkey = ''
-                for part in arr:
-                    if part in param_names:
-                        nkey = arr[0]
-                        break
+                nkey = next((arr[0] for part in arr if part in param_names), '')
                 if nkey == '':
                     print(f'Could not find index of parameter {key} in param_names: {param_names}, arr: {arr}')
                     continue
                 print(f'param map key is {key} -- switch to {nkey}')
                 key = nkey
-                #for cases like "int status_code", "io.IOBase body"
+                            #for cases like "int status_code", "io.IOBase body"
 
             # param_uri = URIRef(prefixes['graph4code'] + key)
             # param_index = param_names.index(value['name']) if 'name' in value else param_names.index(key)
@@ -193,7 +183,7 @@ def add_triples_from_param_map(doc_uri, g, data_list, param_names):
                 print(f'Could not find index of parameter {key} in param_names: {param_names}')
                 continue
             param_index = param_names.index(key)+1
-            param_uri = URIRef(str(doc_uri) +'/p/'+ str(param_index))
+            param_uri = URIRef(f'{str(doc_uri)}/p/{str(param_index)}')
 
             g = add_edge(g, param_uri, URIRef(prefixes['rdf'] + 'type'),
                          URIRef(prefixes['graph4code']+'Parameter'), URIRef(docstrings_uri))
@@ -235,9 +225,9 @@ def add_triples_from_return_map(doc_uri, g, data_list):
    {'doc': ' ProxyManager', 'type': ' urllib3.ProxyManager'}
     '''
     if data_list is not None:
-        return_index = 1
         if 'type' in data_list:
-            ret_uri = URIRef(str(doc_uri) + '/r/' + str(return_index))
+            return_index = 1
+            ret_uri = URIRef(f'{str(doc_uri)}/r/{return_index}')
             g = add_edge(g, doc_uri, URIRef(prefixes['graph4code'] + 'return'),
                          ret_uri, URIRef(docstrings_uri))
             g = add_edge(g, ret_uri, URIRef(prefixes['rdf'] + 'type'),
@@ -278,17 +268,17 @@ def add_triples_from_dic_of_dic(doc_uri, g, data_list, edge_name):
             if new_key is None:
                 print(f'KEY IS NONE: {key} -- {new_key}')
                 continue
-            if type(value) == str or type(value) == int:
+            if type(value) in [str, int]:
                 g = add_edge(g, doc_uri, URIRef(docstrings_uri + edge_name +'/'+ str(new_key)),
                              Literal(str(value)), URIRef(docstrings_uri))
                 continue
-            elif type(value) == list :
+            elif type(value) == list:
                 for v in value:
                     g = add_edge(g, doc_uri, URIRef(docstrings_uri + edge_name +'/'+ str(new_key)),
                                  Literal(str(v)), URIRef(docstrings_uri))
                 continue
             #key: estimator
-            val_uri = URIRef(doc_uri +'/' + edge_name +'/' + str(new_key))
+            val_uri = URIRef(f'{doc_uri}/{edge_name}/{str(new_key)}')
             g = add_edge(g, doc_uri, URIRef(docstrings_uri + edge_name),
                          val_uri, URIRef(docstrings_uri))
             if key_type is not None:
@@ -304,11 +294,22 @@ def add_triples_from_dic_of_dic(doc_uri, g, data_list, edge_name):
                 if value2 is None:
                     continue
                 if type(value2) == str:
-                    g = add_edge(g, val_uri, URIRef(docstrings_uri +'/'+ new_key2), Literal(str(value2)), URIRef(docstrings_uri))
+                    g = add_edge(
+                        g,
+                        val_uri,
+                        URIRef(f'{docstrings_uri}/{new_key2}'),
+                        Literal(str(value2)),
+                        URIRef(docstrings_uri),
+                    )
                 elif type(value2) == list:
                     for v in value2:
-                        g = add_edge(g, val_uri, URIRef(docstrings_uri +'/'+edge_name +'/'+ new_key2), Literal(str(v)),
-                                     URIRef(docstrings_uri))
+                        g = add_edge(
+                            g,
+                            val_uri,
+                            URIRef(f'{docstrings_uri}/{edge_name}/{new_key2}'),
+                            Literal(str(v)),
+                            URIRef(docstrings_uri),
+                        )
 
     return g
 
@@ -329,18 +330,18 @@ def add_part_of_edges(g, doc_uri, class_or_module, is_function=False):
     prev_seg = get_new_func_klass_uri(class_or_module_comp[0])
     for i in range(1, len(class_or_module_comp)):
         doc_uri_tgt = URIRef(prev_seg)
-        doc_uri_src = URIRef(prev_seg + '.' + class_or_module_comp[i])
+        doc_uri_src = URIRef(f'{prev_seg}.{class_or_module_comp[i]}')
         g = add_edge(g, doc_uri_src, URIRef(prefixes['dcterms'] + 'isPartOf'),
                      doc_uri_tgt, URIRef(docstrings_uri))
         g = add_edge(g, doc_uri_tgt, URIRef(prefixes['rdfs'] + 'label'),
                      Literal(doc_uri_tgt.replace(prefixes['py'], '').strip()), URIRef(docstrings_uri))
-        prev_seg += '.' + class_or_module_comp[i]
+        prev_seg += f'.{class_or_module_comp[i]}'
     return g
 def add_name_end(name, g, doc_uri):
     name = name.strip().replace('"', '')
     comp = name.strip().split('.')
     path_end = comp[len(comp) - 1]
-    if path_end.strip() == "" or path_end.strip() == "_":
+    if path_end.strip() in ["", "_"]:
         print(f'skipping empty name_end === {path_end}')
     elif len(comp) > 1:
         g = add_edge(g, doc_uri, URIRef(prefixes['graph4code'] + 'name_end'), Literal(path_end), URIRef(docstrings_uri))
@@ -353,7 +354,6 @@ def output_documentation_triples(doc_details, out_triple_file):
     doc_details.module_name = doc_details.module_name.strip().replace(' ', '.') if doc_details.module_name is not None else doc_details.module_name
     doc_details.klass_name = doc_details.klass_name.strip().replace(' ', '.') if doc_details.klass_name is not None else doc_details.klass_name
     doc_details.function_name = doc_details.function_name.strip().replace(' ', '.') if doc_details.function_name is not None else doc_details.function_name
-    num_triples = 0
     doc_name = ''
     if doc_details.type == 'class':
         # doc_uri = URIRef(get_func_klass_uri(doc_details.module_name, doc_details.klass_name))
@@ -386,16 +386,24 @@ def output_documentation_triples(doc_details, out_triple_file):
         g = add_part_of_edges(g, doc_uri, func_prefix, is_function = True)
         g = add_name_end(doc_details.function_name, g, doc_uri)
     else:
-        doc_name = doc_details.klass_name +'.' +doc_details.function_name
+        doc_name = f'{doc_details.klass_name}.{doc_details.function_name}'
         doc_uri = URIRef(get_new_func_klass_uri(doc_name))
         g = add_edge(g, doc_uri, URIRef(prefixes['rdf']+'type'),   URIRef(prefixes['graph4code']+'Method'), URIRef(docstrings_uri))
         # g = add_edge(g, doc_uri, URIRef(prefixes['skos']+'notation'),   Literal(doc_details.function_name), URIRef(docstrings_uri))
-        g = add_edge(g, doc_uri, URIRef(prefixes['rdfs'] + 'label'), Literal(doc_details.klass_name + '.' + doc_details.function_name), URIRef(docstrings_uri))
+        g = add_edge(
+            g,
+            doc_uri,
+            URIRef(prefixes['rdfs'] + 'label'),
+            Literal(f'{doc_details.klass_name}.{doc_details.function_name}'),
+            URIRef(docstrings_uri),
+        )
         # if doc_details.module_name is not None:
         #     g = add_edge(g, doc_uri, URIRef(prefixes['skos'] + 'altLabel'),
         #            Literal(doc_details.module_name + '.' + doc_details.klass_name + '.' + doc_details.function_name), URIRef(docstrings_uri))
         g = add_part_of_edges(g, doc_uri, doc_details.klass_name, is_function = True)
-        g = add_name_end((doc_details.klass_name + '.' + doc_details.function_name), g, doc_uri)
+        g = add_name_end(
+            f'{doc_details.klass_name}.{doc_details.function_name}', g, doc_uri
+        )
     #param_names is a list
     #base_classes is a list
     # g = add_triples_from_list(doc_uri, g, doc_details.base_classes,
@@ -411,9 +419,8 @@ def output_documentation_triples(doc_details, out_triple_file):
     #NOte that the param_names, param_map and param_type don't always appear together, that's why param label, type ... are repeated in each case
     ##TODO: THIS ASSUMES THE ORDER IN PARAMETER NAMES IS CORRECT
     if doc_details.param_names is not None:
-        param_index = 1
-        for param in doc_details.param_names:
-            param_uri = URIRef(str(doc_uri) + '/p/' + str(param_index))
+        for param_index, param in enumerate(doc_details.param_names, start=1):
+            param_uri = URIRef(f'{str(doc_uri)}/p/{str(param_index)}')
             g = add_edge(g, doc_uri, URIRef(prefixes['graph4code'] + 'param'),
                          param_uri, URIRef(docstrings_uri))
             g = add_edge(g, param_uri, URIRef(prefixes['rdf'] + 'type'),
@@ -422,8 +429,6 @@ def output_documentation_triples(doc_details, out_triple_file):
                  URIRef(docstrings_uri))
             g = add_edge(g, param_uri, URIRef(prefixes['graph4code'] + 'param_index'),
                          Literal(param_index), URIRef(docstrings_uri))
-            param_index += 1
-
     g = add_triples_from_param_map(doc_uri, g, doc_details.param_map, doc_details.param_names)
     if doc_details.module_name is not None:
         class_or_module_comp = doc_name.split('.')
@@ -464,9 +469,7 @@ def output_documentation_triples(doc_details, out_triple_file):
     if g is None:
         print(f'Could not create a graph for: module {doc_details.module_name}, class: {doc_details.klass_name}, func: {doc_details.function_name}')
         return 0
-    for t in g:
-        num_triples+= 1
-        # print(t)
+    num_triples = sum(1 for _ in g)
     g.serialize(destination=out_triple_file, format='nquads', encoding='utf-8')
     return num_triples
 
@@ -521,18 +524,17 @@ def get_func_documentation(function_dic):
 
 def merge_all_files(path, out_filename):
     file_list = os.listdir(path)
-    outfile = open(out_filename, 'w')
-    for filename in sorted(file_list):
-        filepath = path + '/' + filename
-        with open(filepath, 'r') as f:
-            content = f.readlines()
-            for line in content:
-                outfile.write(line)
-        try:
-            os.remove(filepath)
-        except:
-            print(f'could not remove file: {filepath}')
-    outfile.close()
+    with open(out_filename, 'w') as outfile:
+        for filename in sorted(file_list):
+            filepath = f'{path}/{filename}'
+            with open(filepath, 'r') as f:
+                content = f.readlines()
+                for line in content:
+                    outfile.write(line)
+            try:
+                os.remove(filepath)
+            except:
+                print(f'could not remove file: {filepath}')
 
 def create_docstrings_graph(docstring_dir, out_dir):
     total_num_files = 0

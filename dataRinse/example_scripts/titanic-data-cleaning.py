@@ -67,16 +67,15 @@ sns.boxplot(x = 'Pclass', y = 'Age', data = df, palette='winter')
 def impute_age(cols):
     Age = cols[0]
     Pclass = cols[1]
-    
-    if pd.isnull(Age):
-        if Pclass == 1:
-            return 37
-        elif Pclass == 2:
-            return 29
-        else:
-            return 24
-    else:
+
+    if not pd.isnull(Age):
         return Age
+    if Pclass == 1:
+        return 37
+    elif Pclass == 2:
+        return 29
+    else:
+        return 24
         
 # now apply this function to make changes
 df["Age"] = df[['Age', 'Pclass']].apply(impute_age, axis = 1)

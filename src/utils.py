@@ -18,7 +18,7 @@ from threading import Lock, Thread
 es = None
 DEBUG = False
 lock = Lock()
-list_of_ES_conn = list()
+list_of_ES_conn = []
 
 elastic_search_setting = {
     "settings": {
@@ -49,29 +49,30 @@ elastic_search_setting = {
     }
 }
 
-prefixes = {}
-prefixes['rdf'] = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#'
-prefixes['rdfs'] = 'http://www.w3.org/2000/01/rdf-schema#'
-prefixes['schema'] = 'http://schema.org/'
-prefixes['sioc'] = 'http://rdfs.org/sioc/ns#'
-prefixes['py'] = 'http://purl.org/twc/graph4code/python/'
-prefixes['skos'] = 'http://www.w3.org/2004/02/skos/core#'
-prefixes['sio'] = 'http://semanticscience.org/resource/'
-prefixes['graph4code'] = 'http://purl.org/twc/graph4code/ontology/'
-prefixes['owl'] = 'http://www.w3.org/2002/07/owl#'
-prefixes['prov'] = 'http://www.w3.org/ns/prov#'
-prefixes['dcat'] = 'http://www.w3.org/ns/dcat#'
-prefixes['dcterms'] = 'http://purl.org/dc/terms/'
-prefixes["stackoverflow3"] = "https://stackoverflow.com/questions/"
-prefixes["npstackoverflow3"] = "http://purl.org/twc/graph4code/so/nanopub/"
-prefixes["stats_stackexchange"] = "https://stats.stackexchange.com/questions/"
-prefixes["npstats_stackexchange"] = "http://purl.org/twc/graph4code/stats_se/nanopub/"
-prefixes["datascience_stackexchange"] = "https://datascience.stackexchange.com/questions/"
-prefixes["npdatascience_stackexchange"] = "http://purl.org/twc/graph4code/datascience_se/nanopub/"
-prefixes["math_stackexchange"] = "https://math.stackexchange.com/questions/"
-prefixes["npmath_stackexchange"] = "http://purl.org/twc/graph4code/math_se/nanopub/"
-prefixes["ai_stackexchange"] = "https://ai.stackexchange.com/questions/"
-prefixes["npai_stackexchange"] = "http://purl.org/twc/graph4code/ai_se/nanopub/"
+prefixes = {
+    'rdf': 'http://www.w3.org/1999/02/22-rdf-syntax-ns#',
+    'rdfs': 'http://www.w3.org/2000/01/rdf-schema#',
+    'schema': 'http://schema.org/',
+    'sioc': 'http://rdfs.org/sioc/ns#',
+    'py': 'http://purl.org/twc/graph4code/python/',
+    'skos': 'http://www.w3.org/2004/02/skos/core#',
+    'sio': 'http://semanticscience.org/resource/',
+    'graph4code': 'http://purl.org/twc/graph4code/ontology/',
+    'owl': 'http://www.w3.org/2002/07/owl#',
+    'prov': 'http://www.w3.org/ns/prov#',
+    'dcat': 'http://www.w3.org/ns/dcat#',
+    'dcterms': 'http://purl.org/dc/terms/',
+    "stackoverflow3": "https://stackoverflow.com/questions/",
+    "npstackoverflow3": "http://purl.org/twc/graph4code/so/nanopub/",
+    "stats_stackexchange": "https://stats.stackexchange.com/questions/",
+    "npstats_stackexchange": "http://purl.org/twc/graph4code/stats_se/nanopub/",
+    "datascience_stackexchange": "https://datascience.stackexchange.com/questions/",
+    "npdatascience_stackexchange": "http://purl.org/twc/graph4code/datascience_se/nanopub/",
+    "math_stackexchange": "https://math.stackexchange.com/questions/",
+    "npmath_stackexchange": "http://purl.org/twc/graph4code/math_se/nanopub/",
+    "ai_stackexchange": "https://ai.stackexchange.com/questions/",
+    "npai_stackexchange": "http://purl.org/twc/graph4code/ai_se/nanopub/",
+}
 
 class FuncDetails:
     def __init__(self, functions, lib_name, file_name, graph_main_prefix, index_name, stack_output_dir, split_further=True):
@@ -93,10 +94,7 @@ class FuncDetails:
         self.stack_output_dir = stack_output_dir
         self.split_further = split_further
 def remove_keys(row):
-    new = {}
-    for key,val in row.items():
-        new[key.replace('@','')] = val
-    return new
+    return {key.replace('@',''): val for key, val in row.items()}
 
 def clean(x):
     return x #.replace('\n','').replace('\r','').replace('\\','').replace('"','')
@@ -105,13 +103,17 @@ def read_stackoverflow_posts(stackoverflow_dir, load_posts_if_exists, pickled_fi
     posts = {}
     postsVotes = {}
     question_answers = {}
-    if load_posts_if_exists and path.exists(pickled_files_out + "/posts.pickle"):
+    if load_posts_if_exists and path.exists(
+        f"{pickled_files_out}/posts.pickle"
+    ):
         print('Loading posts and postsVotes from disk')
-        posts = pickle.load(open(pickled_files_out + "/posts.pickle", "rb"))
+        posts = pickle.load(open(f"{pickled_files_out}/posts.pickle", "rb"))
         print(f'len(posts) = {len(posts)}')
-        postsVotes = pickle.load(open(pickled_files_out + "/postsVotes.pickle", "rb"))
+        postsVotes = pickle.load(open(f"{pickled_files_out}/postsVotes.pickle", "rb"))
         print(f'len(postsVotes) = {len(postsVotes)}')
-        question_answers = pickle.load(open(pickled_files_out + "/question_answers.pickle", "rb"))
+        question_answers = pickle.load(
+            open(f"{pickled_files_out}/question_answers.pickle", "rb")
+        )
         print(f'len(question_answers) = {len(question_answers)}')
     else:
         print("Step 1: Extracting stackoverflow posts and other relevant information")
@@ -121,7 +123,7 @@ def read_stackoverflow_posts(stackoverflow_dir, load_posts_if_exists, pickled_fi
         num_answers = 0
         num_non_python_questions = 0
         num_posts_with_errors = 0
-        for i, line in enumerate(open(file)):
+        for line in open(file):
             line = line.strip()
             try:
                 if line.startswith("<row"):
@@ -151,12 +153,12 @@ def read_stackoverflow_posts(stackoverflow_dir, load_posts_if_exists, pickled_fi
                     #     break
             except Exception as e:
                 num_posts_with_errors += 1
-                print(str(e))
+                print(e)
         print(f'Extracted {len(posts)} out of {index} posts: num_questions: {num_questions}, '
               f'num_answers: {num_answers}, num_non_python_posts: {num_non_python_questions}')
         print(f'num_posts_with_errors: {num_posts_with_errors}')
         file = join(stackoverflow_dir, 'Votes.xml')
-        for i, line in enumerate(open(file)):
+        for line in open(file):
             line = line.strip()
             try:
                 if line.startswith("<row"):
@@ -164,11 +166,8 @@ def read_stackoverflow_posts(stackoverflow_dir, load_posts_if_exists, pickled_fi
                     el = remove_keys(el)
                     PostId = el['PostId']
                     VoteTypeId = clean(el.get('VoteTypeId', ''))
-                    if VoteTypeId == '1' or VoteTypeId == '2':
-                        if PostId not in postsVotes:
-                            postsVotes[PostId] = 1
-                        else:
-                            postsVotes[PostId] = postsVotes[PostId] + 1
+                    if VoteTypeId in ['1', '2']:
+                        postsVotes[PostId] = 1 if PostId not in postsVotes else postsVotes[PostId] + 1
             except Exception as e:
                 traceback.print_exc(file=sys.stdout)
                 print(e)
@@ -180,72 +179,76 @@ def read_stackoverflow_posts(stackoverflow_dir, load_posts_if_exists, pickled_fi
         # TODO: skip the above if these files are already there!
         try:
             print('Saving posts and votes')
-            pickle.dump(posts, open(pickled_files_out + "/posts.pickle", "wb"))
-            pickle.dump(postsVotes, open(pickled_files_out + "/postsVotes.pickle", "wb"))
-            pickle.dump(question_answers, open(pickled_files_out + "/question_answers.pickle", "wb"))
+            pickle.dump(posts, open(f"{pickled_files_out}/posts.pickle", "wb"))
+            pickle.dump(postsVotes, open(f"{pickled_files_out}/postsVotes.pickle", "wb"))
+            pickle.dump(
+                question_answers,
+                open(f"{pickled_files_out}/question_answers.pickle", "wb"),
+            )
         except:
             print('Failed to save posts/votes')
             traceback.print_exc(file=sys.stdout)
     return posts, postsVotes, question_answers
 
 def build_elastic_search_index(index_name, es, posts, postsVotes, question_answers, delete_index):
-    num_answers_with_less_votes = 0
+    if not delete_index:
+        return
+    index = 1
+    print("Step 2: Ingesting the collected posts in ES index")
     num_answers_not_found_in_posts = 0 #should be zero
     num_questions_not_found_in_posts = 0
     number_of_indexed_questions = 0
     number_of_indexed_answers = 0
 
-    if delete_index:
-        index = 1
-        print("Step 2: Ingesting the collected posts in ES index")
-        for key, value in question_answers.items():
-            answers = []
-            if key not in posts:
-                num_questions_not_found_in_posts += 1
-                continue
-            for ansId in value:
-                # ##TODO: filter answers based on votes
-                # if ansId not in postsVotes:
-                #     continue
-                # if ansId in postsVotes and postsVotes[ansId] < 1:
-                #     # print(f'answer #{ansId} for question {key} does not have enough votes')
-                #     num_answers_with_less_votes += 1
-                #     continue
-                # print(f'answr #{ansId} for question {key} has enough votes {postsVotes[ansId]}')
-                if ansId in posts:
-                    answers.append(posts[ansId])
-                else:
-                    num_answers_not_found_in_posts += 1
-            question = posts[key]
-            # TODO: focus on questions, marked answers or answers with votes > 1
-            qId, PostTypeId, ParentId, AcceptedAnswerId, Title, Body, Tags, qvotes = question
-            docContent = Title + " " + Body + " " + Tags
-            if DEBUG and 'tensorflow' not in docContent:
-                continue
-            answerCodes = []
-            for answer in answers:
-                # _, _, _, answerTitle, answerBody, _ = answer
-                aId, aPostTypeId, aParentId, aAcceptedAnswerId, answerTitle, answerBody, aTags, avotes = answer
-                docContent += answerBody
-                soup = BeautifulSoup(answerBody, "html.parser")
-                # codes = [p.get_text() for p in soup.find_all("code", text=True)]
-                codes = [p.get_text() for p in soup.find_all("code", text=True) if '\n' in p.get_text()]
-                answerCodes.append(codes)
+    for key, value in question_answers.items():
+        answers = []
+        if key not in posts:
+            num_questions_not_found_in_posts += 1
+            continue
+        for ansId in value:
+            # ##TODO: filter answers based on votes
+            # if ansId not in postsVotes:
+            #     continue
+            # if ansId in postsVotes and postsVotes[ansId] < 1:
+            #     # print(f'answer #{ansId} for question {key} does not have enough votes')
+            #     num_answers_with_less_votes += 1
+            #     continue
+            # print(f'answr #{ansId} for question {key} has enough votes {postsVotes[ansId]}')
+            if ansId in posts:
+                answers.append(posts[ansId])
+            else:
+                num_answers_not_found_in_posts += 1
+        question = posts[key]
+        # TODO: focus on questions, marked answers or answers with votes > 1
+        qId, PostTypeId, ParentId, AcceptedAnswerId, Title, Body, Tags, qvotes = question
+        docContent = f"{Title} {Body} {Tags}"
+        if DEBUG and 'tensorflow' not in docContent:
+            continue
+        answerCodes = []
+        for answer in answers:
+            # _, _, _, answerTitle, answerBody, _ = answer
+            aId, aPostTypeId, aParentId, aAcceptedAnswerId, answerTitle, answerBody, aTags, avotes = answer
+            docContent += answerBody
+            soup = BeautifulSoup(answerBody, "html.parser")
+            # codes = [p.get_text() for p in soup.find_all("code", text=True)]
+            codes = [p.get_text() for p in soup.find_all("code", text=True) if '\n' in p.get_text()]
+            answerCodes.append(codes)
 
-            # codes has to be filtered for min length or having new line!
-            doc = {'title': str(Title), 'content': docContent, 'codes': answerCodes, 'question_id:': key,
-                   'question_votes:': qvotes,
-                   'question_text:': Body, 'tags': Tags, 'answers': answers}
-            res = es.index(index=index_name, id=index, body=doc)
-            number_of_indexed_questions += 1
-            number_of_indexed_answers += len(answers)
-            index += 1
+        # codes has to be filtered for min length or having new line!
+        doc = {'title': str(Title), 'content': docContent, 'codes': answerCodes, 'question_id:': key,
+               'question_votes:': qvotes,
+               'question_text:': Body, 'tags': Tags, 'answers': answers}
+        res = es.index(index=index_name, id=index, body=doc)
+        number_of_indexed_questions += 1
+        number_of_indexed_answers += len(answers)
+        index += 1
 
-        print(f'num_answers_with_less_votes: {num_answers_with_less_votes}')
-        print(f'num_questions_not_found_in_posts: {num_questions_not_found_in_posts}')
-        print(f'num_answers_not_found_in_posts: {num_answers_not_found_in_posts}')
-        print(f'number_of_indexed_questions: {number_of_indexed_questions}')
-        print(f'number_of_indexed_answers: {number_of_indexed_answers}')
+    num_answers_with_less_votes = 0
+    print(f'num_answers_with_less_votes: {num_answers_with_less_votes}')
+    print(f'num_questions_not_found_in_posts: {num_questions_not_found_in_posts}')
+    print(f'num_answers_not_found_in_posts: {num_answers_not_found_in_posts}')
+    print(f'number_of_indexed_questions: {number_of_indexed_questions}')
+    print(f'number_of_indexed_answers: {number_of_indexed_answers}')
         # print('Total number of posts with votes > 1 extracted from Stackoverflow = ', len(posts))
 
 
@@ -298,9 +301,8 @@ def get_class_function_query(func, c):
     return get_pure_class_or_function_query(c, func)
 
 def filter_results(res, qualified_name, es):
-    must_clauses = []
     arr = qualified_name.split('.')
-    must_clauses.append(arr[-1])
+    must_clauses = [arr[-1]]
     if len(arr)>1:
         must_clauses.append(arr[0])
 
@@ -310,9 +312,7 @@ def filter_results(res, qualified_name, es):
             "field": "content",
             "text": must
         })
-        tokens = []
-        for s in token_parts['tokens']:
-            tokens.append(s['token'])
+        tokens = [s['token'] for s in token_parts['tokens']]
         str_to_match = ' '.join(tokens).lower()
         must_2_match[must] = str_to_match
 

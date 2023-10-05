@@ -41,7 +41,7 @@ def gather_datasets_metadata(output_file='./data/dataset_metadata.json'):
     it = pool.imap_unordered(fetch_dataset, list_datasets_names)
     dataset_to_target_names = {}
     for eps in range(len(list_datasets_names)):
-        print("Processing dataset file: {} (out of {})".format(eps, len(list_datasets_names)))
+        print(f"Processing dataset file: {eps} (out of {len(list_datasets_names)})")
         try:
             X, name = it.next(60)
             if X:

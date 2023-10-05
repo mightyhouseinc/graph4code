@@ -54,24 +54,18 @@ def print_neighbors(distances, neighbors, keys, queries, exps, col2counts, total
     return matched, neighbours_scores
 
 def create_command(output_file, name, target_name, task_type, seed, expressions):
-    command_list = []
-    command_list.append(
-        ['', name, target_name, str(expressions),
-         '', task_type, seed, output_file]
-    )
-    # command_list.append(
-    #     ['', name, target_name, str(expressions),
-    #      'plain', task_type, seed, output_file + '_plain.out']
-    # )
-    # command_list.append(
-    #     ['', name, target_name, str(expressions),
-    #      'expr', task_type, seed, output_file + '_expr.out']
-    # )
-    # command_list.append(
-    #     ['', name, target_name, str(expressions),
-    #      'both', task_type, seed, output_file + '_both.out']
-    # )
-    return command_list
+    return [
+        [
+            '',
+            name,
+            target_name,
+            str(expressions),
+            '',
+            task_type,
+            seed,
+            output_file,
+        ]
+    ]
 
 def build_automl_commands(ES_matches):
     command_list = []
@@ -89,9 +83,9 @@ def build_automl_commands(ES_matches):
                 #kaggle
                 name = csv.replace('.zip_', '.zip/').split('/')[-1].replace('.csv', '.plain.csv')
                 print('Try full name: ', name)
-                if name not in dataset_metadata:
+            if name not in dataset_metadata:
 
-                    continue
+                continue
             metadata = dataset_metadata[name]
             for col in all_exps[csv]['matched_cols']:
                 for e in all_exps[csv]['matched_cols'][col]:
@@ -107,7 +101,7 @@ def build_automl_commands(ES_matches):
                             'code': exp['code']
                         }
                     )
-            if len(expressions) == 0:
+            if not expressions:
                 print('Skip!! -- did not find any matching expressions!!')
             if type(metadata['task_type']) == str:
                 metadata['task_type'] = [metadata['task_type']]
@@ -137,7 +131,6 @@ def build_automl_commands(ES_matches):
         no_matches_search = 0
 
         for csv in all_exps:
-            all_open_ml_cols = []
             all_exprs_cols = []
             exp_list = []
 
@@ -145,7 +138,7 @@ def build_automl_commands(ES_matches):
             open_ml_cols.extend(all_exps[csv]['columns_list'])
             exp_cols = []
             cols = csv + ' ' + ' '.join(all_exps[csv]['columns_list'])
-            all_open_ml_cols.append(cols)
+            all_open_ml_cols = [cols]
             if len(all_exps[csv]['matched_cols']) == 0:
                 no_matches.append(csv)
                 no_matches_search += 1
@@ -156,8 +149,8 @@ def build_automl_commands(ES_matches):
                     exp_list.append(e)
                     tables = ' '.join(e['csvfiles'])
                     fields = ' '.join(e['fields'])
-                    all_exprs_cols.append(tables + ' ' + fields)
-                    matched_dataset_to_details[tables + ' ' + fields] = (col, e)
+                    all_exprs_cols.append(f'{tables} {fields}')
+                    matched_dataset_to_details[f'{tables} {fields}'] = (col, e)
                     exp_cols.append(e['csvfiles'] + e['fields'])
 
             index = faiss.IndexFlatL2(512)  # build the index
@@ -214,7 +207,7 @@ def build_automl_commands(ES_matches):
                         'code': exp['code']
                     }
                 )
-            if len(expressions) == 0:
+            if not expressions:
                 print('Skip!! -- did not find any matching expressions!!')
             if 'classification' in metadata['task_type']: #TODO: binary vs. multiclass
                 metadata['task_type'] = 'classification'
@@ -251,7 +244,7 @@ dataset_name = '../data/houses.csv'
 seed = 123456         # Set random seed
 compute_corr_only = False #false for trying to run autoML
 output_dir = './'
-output_dir += 'automl_out_' + str(seed)
+output_dir += f'automl_out_{seed}'
 os.makedirs(output_dir, exist_ok=True)
 
 es = Elasticsearch("http://localhost:9200", basic_auth=("elastic", os.environ['ES_PASSWORD']))

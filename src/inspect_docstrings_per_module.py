@@ -39,10 +39,7 @@ def parse_docstring_into_restructured_text(docstring):
         lines = NumpyDocstring(docstring, config).lines()
     except:
         lines = GoogleDocstring(docstring, config).lines()
-    if lines:
-        return parse_rst(lines)
-    else:
-        return None, None, None, None
+    return parse_rst(lines) if lines else (None, None, None, None)
 
 
 # lines from the RST format are highly stylized, and it looks like
@@ -134,16 +131,14 @@ def inspect_all(f):
 
 
 def inspect_module(f):
-    module_to_classes = {}
-    module_to_classes[f] = []
+    module_to_classes = {f: []}
     for c_name, c in inspect.getmembers(f, inspect.isclass):
         module_to_classes[f].append(inspect_class(c))
     return module_to_classes
 
 
 def inspect_class(f):
-    class_to_methods = {}
-    class_to_methods[f] = []
+    class_to_methods = {f: []}
     for m_name, m in inspect.getmembers(f, inspect.isfunction):
         class_to_methods[f].append((m, m_name, inspect.getfullargspec(m), inspect.getdoc(m)))
     for m_name, m in inspect.getmembers(f, inspect.ismethod):
@@ -154,8 +149,7 @@ def inspect_class(f):
 def add_types(anns):
     l = []
     for t in anns:
-        s = get_class_name(str(t))
-        if s:
+        if s := get_class_name(str(t)):
             l.append(s)
     return l
 
@@ -185,8 +179,7 @@ def extract_function(f, ret, name, clazz=None, mod=None):
             if len(param_types) > 0:
                 ret['param_types'] = param_types
         if sig.return_annotation:
-            ret_types = get_class_name(sig.return_annotation)
-            if ret_types:
+            if ret_types := get_class_name(sig.return_annotation):
                 ret['ret_types'] = ret_types
 
         param_names = list(sig.parameters)
@@ -196,37 +189,32 @@ def extract_function(f, ret, name, clazz=None, mod=None):
                 for k, v in sig.parameters.items()
                 if v.default is not inspect.Parameter.empty and not isinstance(v.default, object)
             }
-            for i in param_defaults:
-                if isinstance(param_defaults[i], tuple):
+            for i, value in param_defaults.items():
+                if isinstance(value, tuple):
                     param_defaults[i] = list(param_defaults[i])
 
-            if len(param_defaults) > 0:
+            if param_defaults:
                 ret['param_defaults'] = param_defaults
 
-        if param_names and len(param_names) > 0:
+        if param_names:
             if 'self' in param_names:
                 param_names.remove('self')
-            if len(param_names) > 0:
-                ret['param_names'] = param_names
+        if param_names:
+            ret['param_names'] = param_names
     except:
         exc_type, exc_value, exc_traceback = sys.exc_info()
         print("*** error: print_tb:")
         traceback.print_tb(exc_traceback, limit=3, file=sys.stdout)
-        pass
     if overall_doc is not None:
-        if clazz:
-            key = clazz + '.' + name
-        else:
-            key = name
-
+        key = f'{clazz}.{name}' if clazz else name
         method_doc, param_doc_map, param_types_map, return_map = \
             parse_docstring_into_restructured_text(overall_doc)
 
         ret['function_docstring'] = method_doc
         if param_doc_map:
-            param_map = create_parameter_map(param_doc_map, param_types_map, key)
-
-            if param_map:
+            if param_map := create_parameter_map(
+                param_doc_map, param_types_map, key
+            ):
                 ret['param_map'] = param_map
             if return_map:
                 create_returns_map(return_map, name, clazz)
@@ -244,8 +232,10 @@ def inspect_module_sub_package(module, mod, scoping_mod, all_classes, is_base = 
 
     for function in m:
         ret = {}
-        extract_function(function[1], ret, scoping_mod + '.' + function[1].__name__, mod)
-        add_to_method_desc(scoping_mod + '.' + function[1].__name__, ret)
+        extract_function(
+            function[1], ret, f'{scoping_mod}.{function[1].__name__}', mod
+        )
+        add_to_method_desc(f'{scoping_mod}.{function[1].__name__}', ret)
 
     for _, classes in modules.items():
         for c in classes:
@@ -288,10 +278,10 @@ def inspect_module_sub_package(module, mod, scoping_mod, all_classes, is_base = 
 
                 # in cases like RandomForestClassifier, the scoping mod is different from the actual class name
                 # need to add a reference to this class as well
-                if scoping_mod != get_class_name(str(clazz))[0:-1]:
+                if scoping_mod != get_class_name(str(clazz))[:-1]:
                     ret = {}
                     ret['module'] = x
-                    cname = scoping_mod + '.' + get_class_name(str(clazz)).split('.')[-1]
+                    cname = f'{scoping_mod}.' + get_class_name(str(clazz)).split('.')[-1]
                     all_classes[cname] = 1
                     ret['klass'] = cname
                     ret['base_classes'] = [get_class_name(str(c)) for c in clazz.__bases__]
@@ -307,8 +297,9 @@ def inspect_module_sub_package(module, mod, scoping_mod, all_classes, is_base = 
                         extract_function(method[0], ret, m, get_class_name(str(clazz)))
                         ret['module'] = x
                         ret['klass'] = c
-                        key = c + '.' + m
+                        key = f'{c}.{m}'
                         add_to_method_desc(key, ret)
+
                     add_method(m, get_class_name(str(clazz)))
                     for c in additional_class_names:
                         add_method(m, c)
@@ -323,10 +314,7 @@ def create_returns_map(return_map, func, clazz):
         if 'shape' in val:
             shape = find_shape(val, False)
             return_map['dimensionality'] = shape
-    if clazz:
-        key = clazz + '.' + func
-    else:
-        key = func
+    key = f'{clazz}.{func}' if clazz else func
     if key not in cache_of_indexed_functions:
         if clazz:
             doc = {'title': key, 'function': func, 'return_type': True, 'klass': clazz, 'content': return_map['type']}
@@ -343,10 +331,9 @@ def find_optional(param_str):
 
 
 def find_shape(param_str, first=True):
-    if first:
-        pattern = r'shape\s*=?\s*[\(\[{](.*)[\)\]}]'
-    else:
-        pattern = r'[\(\[{](.*)[\)\]}]'
+    pattern = (
+        r'shape\s*=?\s*[\(\[{](.*)[\)\]}]' if first else r'[\(\[{](.*)[\)\]}]'
+    )
     shapes = re.findall(pattern, param_str)
     dims = 0
     if shapes is not None and len(shapes) > 0:
@@ -361,21 +348,18 @@ def create_parameter_map(param_docs, param_doc_types, key):
     param_map = {}
 
     for p in param_docs:
-        param_obj = {}
-        param_obj['name'] = p
-        param_obj['param_doc'] = param_docs[p]
+        param_obj = {'name': p, 'param_doc': param_docs[p]}
         if p in param_doc_types:
             t = param_doc_types[p]
             if t is not None:
                 param_obj['type'] = t
-                key_param = key + '.' + p
+                key_param = f'{key}.{p}'
                 if key_param not in cache_of_indexed_functions:
                     doc = {'title': key, 'param_name': p, 'content': t}
                     es.index(index=indexname, document=doc)
                     cache_of_indexed_functions[key_param] = 1
 
-            opt = find_optional(t)
-            if opt:
+            if opt := find_optional(t):
                 param_obj['optional'] = opt
 
             if 'shape' in t:
@@ -409,7 +393,7 @@ def write_json(ret_json, path, modname):
         print(ret_json)
         raise RuntimeError("JSON is invalid")
 
-    with open(os.path.join(path, modname + '.json'), 'w') as f:
+    with open(os.path.join(path, f'{modname}.json'), 'w') as f:
         json.dump(ret_json, f, indent=4)
 
 def debug(ret_json):
@@ -422,13 +406,9 @@ def debug(ret_json):
 
 
 def get_pure_class_or_function_query(c, key_terms=None, number_of_matches = None):
-    should_clauses = []
-    must_clauses = []
-
-    for term in c.split('.'):
-        should_clauses.append({"match": {"content": term}})
+    should_clauses = [{"match": {"content": term}} for term in c.split('.')]
     key_term = c.split('.')[-1]
-    must_clauses.append({"match": {"content": key_term}})
+    must_clauses = [{"match": {"content": key_term}}]
     if key_terms:
         must_clauses.append({"match": {"content": key_terms}})
     query = {
@@ -474,7 +454,7 @@ def patch_types(all_classes):
             for res in res['hits']['hits']:
                 key = res['_source']['title']
                 if key not in method_descriptions:
-                    print('WARNING: key not found:' + key)
+                    print(f'WARNING: key not found:{key}')
                     continue
                 desc = method_descriptions[key]
                 if 'param_name' in res['_source']:
@@ -510,14 +490,12 @@ def main():
 
     try:
         package = importlib.import_module(p)
-        print('loaded:' + p)
+        print(f'loaded:{p}')
         if not os.path.isdir(path):
             os.mkdir(path)
         inspect_module_sub_package(package, p.strip(), p.strip(), all_classes, True)
 
-        for importer, modname, ispkg in pkgutil.walk_packages(path=package.__path__,
-                                                              prefix=package.__name__ + '.',
-                                                              onerror=lambda x: print(x)):
+        for importer, modname, ispkg in pkgutil.walk_packages(path=package.__path__, prefix=f'{package.__name__}.', onerror=lambda x: print(x)):
             try:
                 if '.tests.' in modname:
                     continue
@@ -529,7 +507,6 @@ def main():
                 exc_type, exc_value, exc_traceback = sys.exc_info()
                 print("*** error: print_tb:")
                 traceback.print_tb(exc_traceback, limit=3, file=sys.stdout)
-                pass
         #print(all_classes)
         patch_types(all_classes)
         #print(method_descriptions)
@@ -537,7 +514,7 @@ def main():
             write_json(list(method_descriptions.values()), path, p)
 
     except ModuleNotFoundError:
-        print("failed to load module" + p)
+        print(f"failed to load module{p}")
         exc_type, exc_value, exc_traceback = sys.exc_info()
         print("*** error: print_tb:")
         traceback.print_tb(exc_traceback, limit=3, file=sys.stdout)
@@ -548,7 +525,7 @@ def main():
         print("*** error: print_tb:")
         traceback.print_tb(exc_traceback, limit=3, file=sys.stdout)
 
-    print("Number of documents stored in index:" + indexname)
+    print(f"Number of documents stored in index:{indexname}")
     print(es.count(index=indexname))
 
 

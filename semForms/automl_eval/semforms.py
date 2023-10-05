@@ -37,10 +37,9 @@ def get_python(nbhandle):
 #Search Github for related python files and notebooks for the given dataset 
 def search_github(dataset_name, dataset_cols):
     buf = [dataset_name]
-    for i in dataset_cols:
-        buf.append(i)
+    buf.extend(iter(dataset_cols))
     query = ' '.join(buf)
-    print('query:' + query)
+    print(f'query:{query}')
     rest_url = 'http://localhost:8001/api/github_search'
     payload = {
         "query": query,
@@ -53,7 +52,6 @@ def search_github(dataset_name, dataset_cols):
 
 #submit files to a program analysis script to extract possible transforms
 def mine_code_for_expressions(urls): 
-    expressions = []
     code2count = {}
     for url in tqdm(urls):
         code = get_python(url)
@@ -70,13 +68,14 @@ def mine_code_for_expressions(urls):
                 code2count[r['code']] = 0
             code2count[r['code']] += 1
 
-    codes = {k: v for k, v in sorted(code2count.items(), reverse=True, key=lambda item: item[1])[:10]}
+    codes = dict(
+        sorted(code2count.items(), reverse=True, key=lambda item: item[1])[:10]
+    )
 
-    for idx, c in enumerate(codes):
-        expressions.append({'expr_name': 'expr' + str(idx), 'code': c})
-    # if len(expressions)==0:
-    #     return mine_code_for_expressions_local_github(urls)
-    return expressions
+    return [
+        {'expr_name': f'expr{str(idx)}', 'code': c}
+        for idx, c in enumerate(codes)
+    ]
 
 
 def pretty_print_transforms(transforms_suggested, expr_name_to_code):
@@ -95,13 +94,13 @@ def encode_categorial(X):
         else:
             lnumeric.append(col)
 
-    print("Categorical columns: " + str(lcategorical))
-    print("Numeric columns: " + str(lnumeric))
+    print(f"Categorical columns: {lcategorical}")
+    print(f"Numeric columns: {lnumeric}")
 
     for name in lcategorical:
         label_encoder = LabelEncoder()
         X[name] = label_encoder.fit_transform(X[name])
-    
+
     return X    
 
 

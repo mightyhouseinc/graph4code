@@ -52,14 +52,14 @@ def search():
     result = []
     # GitHub returns information of only 30 repositories with every request
     # The Search API Endpoint only allows upto 1000 results, hence the range has been set to 35
-    for page in range(1, 2):
-
+    for _ in range(1, 2):
         # Building the Search API URL
         # search_final_url = base_api_url + 'search/repositories?q=' + \
         #     query + '&page=' + str(page) #+ '&' + token
         # search?l=Python&q=dataset.csv&type=Code
-        search_final_url = base_api_url + 'search/code?q=' + \
-                           query + '+language=python+page=1'
+        search_final_url = (
+            f'{base_api_url}search/code?q={query}+language=python+page=1'
+        )
         headers = {
             'Accept': 'application/vnd.github+json',
             "Authorization": f"Bearer {token}"
@@ -119,11 +119,11 @@ def search():
             repo_score = item['score']
 
             # Many Repositories don't have a license, this is to filter them out
-            if 'license' in item['repository']:
-                repo_license = item['repository']['license']['name']
-            else:
-                repo_license = "NO LICENSE"
-
+            repo_license = (
+                item['repository']['license']['name']
+                if 'license' in item['repository']
+                else "NO LICENSE"
+            )
             # Just incase, you face any issue with GitHub API Rate Limiting, use the sleep function as a workaround
             # Reference - https://developer.github.com/v3/search/#rate-limit
 

@@ -61,7 +61,7 @@ def prune_correlated(df):
     print(cor_matrix)
     upper_tri = cor_matrix.where(numpy.triu(numpy.ones(cor_matrix.shape), k=1).astype(bool))
     to_drop = [c for c in upper_tri.columns if any(upper_tri[c] > 0.9) and c.startswith('expr_')]
-    print("dropping correlated " + str(to_drop))
+    print(f"dropping correlated {to_drop}")
     return df.drop(to_drop, axis=1)
 
 def handle_transforms(how, noncorr_expr_columns, Y, X, name):
@@ -133,30 +133,30 @@ def handle_transforms(how, noncorr_expr_columns, Y, X, name):
 
 # Use any AutoML approach - ideally one that can deal with issues in the input data through preprocessing
 def make_automl(model_type, seed):
-     # Defaul Metric
-     metric_name = 'roc_auc'
-     # Just select one ML model 
-     estimator   = 'LGBMClassifierEstimator' 
-     # If it is a regression problem, set metric accordingly
-     if model_type == 'regression':
-        metric_name     = 'neg_mean_squared_error'
-        estimator       = 'LGBMRegressorEstimator' 
-     # Fix model type to only type classifcation (regardless of binary/multi-class)
-     if model_type == 'binary_classification':
-          model_type = 'classification'
-     # Fix model type to only type classifcation (regardless of binary/multi-class)
-     # and set appropriate metric
-     if model_type == 'multiclass_classification':
-          metric_name = 'f1_weighted'
-          model_type = 'classification'
-     print("Calling AutoML with model type: " + str(model_type))  
-     print("Random seed: " + str(seed))
+    # Defaul Metric
+    metric_name = 'roc_auc'
+    # Just select one ML model 
+    estimator   = 'LGBMClassifierEstimator'
+    # If it is a regression problem, set metric accordingly
+    if model_type == 'regression':
+       metric_name     = 'neg_mean_squared_error'
+       estimator       = 'LGBMRegressorEstimator'
+    # Fix model type to only type classifcation (regardless of binary/multi-class)
+    if model_type == 'binary_classification':
+         model_type = 'classification'
+    # Fix model type to only type classifcation (regardless of binary/multi-class)
+    # and set appropriate metric
+    if model_type == 'multiclass_classification':
+         metric_name = 'f1_weighted'
+         model_type = 'classification'
+    print(f"Calling AutoML with model type: {str(model_type)}")
+    print(f"Random seed: {str(seed)}")
 
-     # Initialize AutoML 
-     # Setting some basic parameters specific to automl method (parameter names might be different)
-     automl = automl_estimator(learning_type=model_type, scorer_for_ranking=metric_name, random_state=seed)
-     
-     return ('est', automl)
+    # Initialize AutoML 
+    # Setting some basic parameters specific to automl method (parameter names might be different)
+    automl = automl_estimator(learning_type=model_type, scorer_for_ranking=metric_name, random_state=seed)
+
+    return ('est', automl)
 
 def make_manual(model_type, seed):
     if model_type == 'regression':
@@ -170,8 +170,10 @@ def analyze(in_df, how, name, target, model_type, SEED, non_correlated_expr_colu
     
     if not compute_corr_only:
         print('compute_corr_only: False, skip automl')
-        
-    print("begun analyzing " + str(how) + " " + str(name) + " for " + str(target) + " as " + str(model_type) + " using random seed: " + str(SEED))
+
+    print(
+        f"begun analyzing {str(how)} {str(name)} for {str(target)} as {str(model_type)} using random seed: {str(SEED)}"
+    )
     ret = {"csv": name,
            "how": how,
            "target": target,
@@ -188,7 +190,11 @@ def analyze(in_df, how, name, target, model_type, SEED, non_correlated_expr_colu
     X = in_df.drop([target], axis=1)
     correlation_with_target = {}
     try:
-        if model_type == "classification" or model_type == "binary_classification" or model_type == "multiclass_classification":
+        if model_type in [
+            "classification",
+            "binary_classification",
+            "multiclass_classification",
+        ]:
             X_train, X_test, Y_train, Y_test = train_test_split(X, Y, stratify=Y, random_state=SEED)
         elif model_type == 'regression':
             try:

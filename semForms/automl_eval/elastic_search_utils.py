@@ -70,24 +70,23 @@ def collect_matches(es, dataset):
                     'json_file': res_entry['_source']['json_file'],
                 }
                 matched_entries.append(matched_entry)
-        if len(matched_entries)>0:
+        if matched_entries:
             matched_cols[col] = matched_entries
-    if len(matched_cols) > 0:
-        jsonData[dataset_name] = {}
-        jsonData[dataset_name]['path'] = dataset
-        jsonData[dataset_name]['num_cols'] = len(dataset_cols)
-        jsonData[dataset_name]['columns_list'] = dataset_cols
-        jsonData[dataset_name]['num_matched_cols'] = len(matched_cols)
-        jsonData[dataset_name]['matched_cols'] = matched_cols
-
-        # if str(len(matched_cols)) not in datasets_with_matches:
-        #     datasets_with_matches[str(len(matched_cols))] = []
-        # datasets_with_matches[str(len(matched_cols))].append(len(matched_cols))
+    if matched_cols:
+        jsonData[dataset_name] = {
+            'path': dataset,
+            'num_cols': len(dataset_cols),
+            'columns_list': dataset_cols,
+            'num_matched_cols': len(matched_cols),
+            'matched_cols': matched_cols,
+        }
+            # if str(len(matched_cols)) not in datasets_with_matches:
+            #     datasets_with_matches[str(len(matched_cols))] = []
+            # datasets_with_matches[str(len(matched_cols))].append(len(matched_cols))
     return jsonData#, datasets_with_matches
 
 def get_query(c, number_of_matches = None):
-    should_clauses = []
-    should_clauses.append({"match": {"fields": c}})
+    should_clauses = [{"match": {"fields": c}}]
     query = {
         "from": 0, "size": 10,
         "query": {

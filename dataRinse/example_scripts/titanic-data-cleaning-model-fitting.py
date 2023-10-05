@@ -159,7 +159,7 @@ test_data.isna().sum()
 # In[16]:
 
 
-import missingno as msno 
+import missingno as msno
 msno.bar(train_data) 
 
 
@@ -490,7 +490,7 @@ model.fit(X_train, y_train)
 
 model = LogisticRegression()
 model.fit(X_train, y_train)
-y_pred = model.predict(X_test)  
+y_pred = model.predict(X_test)
 logistic = accuracy_score(y_test, y_pred)
 print(logistic)
 
@@ -512,7 +512,7 @@ importance = model.coef_[0]
 for i,v in enumerate(importance):
     print('Feature: %0d, Score: %.5f' % (i,v))
 # plot feature importance
-pyplot.bar([x for x in range(len(importance))], importance)
+pyplot.bar(list(range(len(importance))), importance)
 pyplot.show()
 
 
@@ -523,7 +523,7 @@ pyplot.show()
 
 xg = XGBClassifier()
 xg.fit(X_train, y_train)
-y_pred = xg.predict(X_test)  
+y_pred = xg.predict(X_test)
 XGB = accuracy_score(y_test, y_pred)
 print(XGB)
 
@@ -535,7 +535,7 @@ print(XGB)
 
 KN = KNeighborsClassifier(n_neighbors=3)
 KN.fit(X_train, y_train)
-y_pred = KN.predict(X_test)  
+y_pred = KN.predict(X_test)
 knn = accuracy_score(y_test, y_pred)
 print(knn)
 
@@ -547,7 +547,7 @@ print(knn)
 
 svc = SVC()
 svc.fit(X_train, y_train)
-y_pred = svc.predict(X_test)  
+y_pred = svc.predict(X_test)
 SVC = accuracy_score(y_test, y_pred)
 print(SVC)
 
@@ -559,7 +559,7 @@ print(SVC)
 
 lsvc = LinearSVC(random_state=0)
 lsvc.fit(X_train, y_train)
-y_pred = lsvc.predict(X_test)  
+y_pred = lsvc.predict(X_test)
 LSVC = accuracy_score(y_test, y_pred)
 print(LSVC)
 

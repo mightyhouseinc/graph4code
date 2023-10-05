@@ -98,13 +98,9 @@ for f in glob(sys.argv[1]):
                 else:
                     modules[m] += 1
 
-modules = {k: v for k, v in sorted(modules.items(), reverse=True, key=lambda item: item[1])}
+modules = dict(sorted(modules.items(), reverse=True, key=lambda item: item[1]))
 
-if len(sys.argv) == 4:
-    max = int(sys.argv[3])
-else:
-    max = len(modules)
-
+max = int(sys.argv[3]) if len(sys.argv) == 4 else len(modules)
 counter = 0
 with open(sys.argv[2], 'w') as out:
     for m in modules:

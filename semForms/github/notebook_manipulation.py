@@ -14,10 +14,11 @@ def fetch(url, output_loc):
 def create_request_for_analysis(original_source_url, source_on_fs, req_file_for_posting):
     with open(source_on_fs) as f:
         lines = f.read()
-        data = {}
-        data['repo'] = original_source_url
-        data['source'] = lines
-        data['indexName'] = 'expressions'
+        data = {
+            'repo': original_source_url,
+            'source': lines,
+            'indexName': 'expressions',
+        }
         with open(req_file_for_posting, 'w') as out:
             json.dump(data, out)
 

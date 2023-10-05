@@ -56,12 +56,12 @@ df_all.name = 'All Set'
 
 dfs = [df_train, df_test]
 
-print('Number of Training Examples = {}'.format(df_train.shape[0]))
-print('Number of Test Examples = {}\n'.format(df_test.shape[0]))
-print('Training X Shape = {}'.format(df_train.shape))
-print('Training y Shape = {}\n'.format(df_train['Survived'].shape[0]))
-print('Test X Shape = {}'.format(df_test.shape))
-print('Test y Shape = {}\n'.format(df_test.shape[0]))
+print(f'Number of Training Examples = {df_train.shape[0]}')
+print(f'Number of Test Examples = {df_test.shape[0]}\n')
+print(f'Training X Shape = {df_train.shape}')
+print(f"Training y Shape = {df_train['Survived'].shape[0]}\n")
+print(f'Test X Shape = {df_test.shape}')
+print(f'Test y Shape = {df_test.shape[0]}\n')
 print(df_train.columns)
 print(df_test.columns)
 
@@ -113,12 +113,12 @@ df_test.sample(3)
 
 
 def display_missing(df):    
-    for col in df.columns.tolist():          
-        print('{} column missing values: {}'.format(col, df[col].isnull().sum()))
+    for col in df.columns.tolist():      
+        print(f'{col} column missing values: {df[col].isnull().sum()}')
     print('\n')
     
 for df in dfs:
-    print('{}'.format(df.name))
+    print(f'{df.name}')
     display_missing(df)
 
 
@@ -142,8 +142,10 @@ age_by_pclass_sex = df_all.groupby(['Sex', 'Pclass']).median()['Age']
 
 for pclass in range(1, 4):
     for sex in ['female', 'male']:
-        print('Median age of Pclass {} {}s: {}'.format(pclass, sex, age_by_pclass_sex[sex][pclass]))
-print('Median age of all passengers: {}'.format(df_all['Age'].median()))
+        print(
+            f'Median age of Pclass {pclass} {sex}s: {age_by_pclass_sex[sex][pclass]}'
+        )
+print(f"Median age of all passengers: {df_all['Age'].median()}")
 
 # Filling the missing values in Age with the medians of Sex and Pclass groups
 df_all['Age'] = df_all.groupby(['Sex', 'Pclass'])['Age'].apply(lambda x: x.fillna(x.median()))
@@ -211,7 +213,7 @@ def get_pclass_dist(df):
     # Creating a dictionary for every passenger class count in every deck
     deck_counts = {'A': {}, 'B': {}, 'C': {}, 'D': {}, 'E': {}, 'F': {}, 'G': {}, 'M': {}, 'T': {}}
     decks = df.columns.levels[0]    
-    
+
     for deck in decks:
         for pclass in range(1, 4):
             try:
@@ -219,14 +221,12 @@ def get_pclass_dist(df):
                 deck_counts[deck][pclass] = count 
             except KeyError:
                 deck_counts[deck][pclass] = 0
-                
-    df_decks = pd.DataFrame(deck_counts)    
-    deck_percentages = {}
 
-    # Creating a dictionary for every passenger class percentage in every deck
-    for col in df_decks.columns:
-        deck_percentages[col] = [(count / df_decks[col].sum()) * 100 for count in df_decks[col]]
-        
+    df_decks = pd.DataFrame(deck_counts)
+    deck_percentages = {
+        col: [(count / df_decks[col].sum()) * 100 for count in df_decks[col]]
+        for col in df_decks.columns
+    }
     return deck_counts, deck_percentages
 
 def display_pclass_dist(percentages):
@@ -291,13 +291,12 @@ def get_survived_dist(df):
     for deck in decks:
         for survive in range(0, 2):
             surv_counts[deck][survive] = df[deck][survive][0]
-            
-    df_surv = pd.DataFrame(surv_counts)
-    surv_percentages = {}
 
-    for col in df_surv.columns:
-        surv_percentages[col] = [(count / df_surv[col].sum()) * 100 for count in df_surv[col]]
-        
+    df_surv = pd.DataFrame(surv_counts)
+    surv_percentages = {
+        col: [(count / df_surv[col].sum()) * 100 for count in df_surv[col]]
+        for col in df_surv.columns
+    }
     return surv_counts, surv_percentages
 
 def display_surv_dist(percentages):

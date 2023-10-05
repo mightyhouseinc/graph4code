@@ -7,8 +7,8 @@ train, test = train_test_split(data,
                             test_size = 0.3,
                             random_state = 0,
                             stratify = my_df['Dataset'])
-train_X = train[train.columns[:len(train.columns)-1]]
-test_X = test[test.columns[:len(test.columns)-1]]
+train_X = train[train.columns[:-1]]
+test_X = test[test.columns[:-1]]
 train_Y = train['Dataset']
 test_Y = test['Dataset']
 model = svm.SVC(kernel=i, random_state=0)
